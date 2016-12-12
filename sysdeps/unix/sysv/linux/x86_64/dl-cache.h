@@ -32,10 +32,10 @@
 	  len -= 2;						\
 	  path[len] = '\0';					\
 	}							\
-      else if (len >= 7						\
-	       && ! memcmp (path + len - 7, "/libx32", 7))	\
+      else if (len >= 6						\
+	       && ! memcmp (path + len - 6, "/lib32", 6))	\
 	{							\
-	  len -= 3;						\
+	  len -= 2;						\
 	  path[len] = '\0';					\
 	}							\
       add_dir (path);						\
@@ -43,7 +43,7 @@
 	{							\
 	  memcpy (path + len, "64", 3);				\
 	  add_dir (path);					\
-	  memcpy (path + len, "x32", 4);				\
+	  memcpy (path + len, "32", 3);				\
 	  add_dir (path);					\
 	}							\
     } while (0)
