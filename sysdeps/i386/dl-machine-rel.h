@@ -23,6 +23,7 @@
    Prelinked libraries may use Elf32_Rela though.  */
 #define ELF_MACHINE_NO_RELA defined RTLD_BOOTSTRAP
 #define ELF_MACHINE_NO_REL 0
+#define ELF_MACHINE_NO_RELR 0
 
 /* The i386 never uses Elf32_Rela relocations for the dynamic linker.
    Prelinked libraries may use Elf32_Rela though.  */

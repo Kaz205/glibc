@@ -50,6 +50,11 @@ static inline void __attribute__((always_inline))
 elf_machine_rela_relative (ElfW(Addr) l_addr, const ElfW(Rela) *reloc,
 			   void *const reloc_addr);
 # endif
+# if ! ELF_MACHINE_NO_RELR
+static inline void __attribute__((always_inline))
+elf_machine_relr_relative (ElfW(Addr) l_addr,
+			    void *const reloc_addr);
+# endif
 # if ELF_MACHINE_NO_RELA || defined ELF_MACHINE_PLT_REL
 static inline void __attribute__((always_inline))
 elf_machine_lazy_rel (struct link_map *map, struct r_scope_elem *scope[],
@@ -146,6 +151,15 @@ elf_machine_lazy_rel (struct link_map *map, struct r_scope_elem *scope[],
 #  define ELF_DYNAMIC_DO_RELA(map, scope, lazy, skip_ifunc) /* Nothing to do.  */
 # endif
 
+# if ! ELF_MACHINE_NO_RELR
+#  define DO_RELR
+#  include "do-rel.h"
+#  define ELF_DYNAMIC_DO_RELR(map, scope, lazy, skip_ifunc) \
+  _ELF_DYNAMIC_DO_RELOC (RELR, Relr, map, scope, lazy, skip_ifunc, 1)
+# else
+#  define ELF_DYNAMIC_DO_RELR(map, scope, lazy, skip_ifunc) /* Nothing to do.  */
+# endif
+
 /* This can't just be an inline function because GCC is too dumb
    to inline functions containing inlines themselves.  */
 # define ELF_DYNAMIC_RELOCATE(map, scope, lazy, consider_profile, skip_ifunc) \
@@ -154,6 +168,7 @@ elf_machine_lazy_rel (struct link_map *map, struct r_scope_elem *scope[],
 					      (consider_profile));	      \
     ELF_DYNAMIC_DO_REL ((map), (scope), edr_lazy, skip_ifunc);		      \
     ELF_DYNAMIC_DO_RELA ((map), (scope), edr_lazy, skip_ifunc);		      \
+    ELF_DYNAMIC_DO_RELR ((map), (scope), edr_lazy, skip_ifunc);		      \
   } while (0)
 
 #endif

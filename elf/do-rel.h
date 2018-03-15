@@ -28,6 +28,12 @@
 # define elf_machine_rel_relative	elf_machine_rela_relative
 #endif
 
+#ifdef DO_RELR
+# define elf_dynamic_do_Rel		elf_dynamic_do_Relr
+# define Rel				Relr
+# define elf_machine_rel_relative	elf_machine_relr_relative
+#endif
+
 #ifndef DO_ELF_MACHINE_REL_RELATIVE
 # define DO_ELF_MACHINE_REL_RELATIVE(map, l_addr, relative) \
   elf_machine_rel_relative (l_addr, relative,				      \
@@ -48,12 +54,12 @@ elf_dynamic_do_Rel (struct link_map *map, struct r_scope_elem *scope[],
   const ElfW(Rel) *r = (const void *) reladdr;
   const ElfW(Rel) *end = (const void *) (reladdr + relsize);
   ElfW(Addr) l_addr = map->l_addr;
-# if defined ELF_MACHINE_IRELATIVE && !defined RTLD_BOOTSTRAP
+# if defined ELF_MACHINE_IRELATIVE && !defined RTLD_BOOTSTRAP && !defined DO_RELR
   const ElfW(Rel) *r2 = NULL;
   const ElfW(Rel) *end2 = NULL;
 # endif
 
-#if (!defined DO_RELA || !defined ELF_MACHINE_PLT_REL) && !defined RTLD_BOOTSTRAP
+#if (!defined DO_RELA || !defined ELF_MACHINE_PLT_REL) && !defined RTLD_BOOTSTRAP && !defined DO_RELR
   /* We never bind lazily during ld.so bootstrap.  Unfortunately gcc is
      not clever enough to see through all the function calls to realize
      that.  */
@@ -82,8 +88,10 @@ elf_dynamic_do_Rel (struct link_map *map, struct r_scope_elem *scope[],
   else
 #endif
     {
+# if !defined DO_RELR
       const ElfW(Sym) *const symtab =
 	(const void *) D_PTR (map, l_info[DT_SYMTAB]);
+# endif
       const ElfW(Rel) *relative = r;
       r += nrelative;
 
@@ -110,9 +118,36 @@ elf_dynamic_do_Rel (struct link_map *map, struct r_scope_elem *scope[],
 	if (l_addr != 0 || ! map->l_info[VALIDX(DT_GNU_PRELINKED)])
 # endif
 #endif
+
+#ifdef DO_RELR
+	  {
+	    ElfW(Addr) base = 0;
+	    for (; relative < end; ++relative)
+	      {
+		ElfW(Relr) entry = *relative;
+		if ((entry&1) == 0)
+		  {
+		    elf_machine_relr_relative (l_addr, (void *) (l_addr + entry));
+		    base = entry + sizeof(ElfW(Addr));
+		    continue;
+		  }
+		ElfW(Addr) offset = base;
+		while (entry != 0)
+		  {
+		    entry >>= 1;
+		    if ((entry&1) != 0)
+		      elf_machine_relr_relative (l_addr, (void *) (l_addr + offset));
+		    offset += sizeof(ElfW(Addr));
+		  }
+		base += (8*sizeof(ElfW(Addr)) - 1) * sizeof(ElfW(Addr));
+	      }
+	  }
+#else
 	  for (; relative < r; ++relative)
 	    DO_ELF_MACHINE_REL_RELATIVE (map, l_addr, relative);
+#endif
 
+#if !defined DO_RELR
 #ifdef RTLD_BOOTSTRAP
       /* The dynamic linker always uses versioning.  */
       assert (map->l_info[VERSYMIDX (DT_VERSYM)] != NULL);
@@ -211,6 +246,7 @@ elf_dynamic_do_Rel (struct link_map *map, struct r_scope_elem *scope[],
 # endif
 	}
 #endif
+#endif
     }
 }
 
@@ -220,3 +256,4 @@ elf_dynamic_do_Rel (struct link_map *map, struct r_scope_elem *scope[],
 #undef elf_machine_rel_relative
 #undef DO_ELF_MACHINE_REL_RELATIVE
 #undef DO_RELA
+#undef DO_RELR

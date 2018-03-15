@@ -608,6 +608,15 @@ elf_machine_rel_relative (Elf32_Addr l_addr, const Elf32_Rel *reloc,
   *reloc_addr += l_addr;
 }
 
+static inline void
+__attribute ((always_inline))
+elf_machine_relr_relative (ElfW(Addr) l_addr,
+			   void *const reloc_addr_arg)
+{
+  ElfW(Addr) *const reloc_addr = reloc_addr_arg;
+  *reloc_addr += l_addr;
+}
+
 # ifndef RTLD_BOOTSTRAP
 static inline void
 __attribute__ ((always_inline))

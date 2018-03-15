@@ -540,6 +540,15 @@ elf_machine_rela_relative (ElfW(Addr) l_addr, const ElfW(Rela) *reloc,
 
 static inline void
 __attribute ((always_inline))
+elf_machine_relr_relative (ElfW(Addr) l_addr,
+			   void *const reloc_addr_arg)
+{
+  ElfW(Addr) *const reloc_addr = reloc_addr_arg;
+  *reloc_addr += l_addr;
+}
+
+static inline void
+__attribute ((always_inline))
 elf_machine_lazy_rel (struct link_map *map, struct r_scope_elem *scope[],
 		      ElfW(Addr) l_addr, const ElfW(Rela) *reloc,
 		      int skip_ifunc)
