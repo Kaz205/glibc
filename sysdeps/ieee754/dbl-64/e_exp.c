@@ -94,6 +94,7 @@ top12 (double x)
 
 double
 SECTION
+__attribute__((aligned(64)))
 __exp (double x)
 {
   uint32_t abstop;
