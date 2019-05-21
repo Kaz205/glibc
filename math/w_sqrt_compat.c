@@ -30,6 +30,7 @@
 #if LIBM_SVID_COMPAT
 /* wrapper sqrt */
 double
+__attribute__((aligned(64)))
 __sqrt (double x)
 {
   if (__builtin_expect (isless (x, 0.0), 0) && _LIB_VERSION != _IEEE_)

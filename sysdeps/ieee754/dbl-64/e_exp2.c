@@ -87,6 +87,7 @@ top12 (double x)
 }
 
 double
+__attribute__((aligned(64)))
 __exp2 (double x)
 {
   uint32_t abstop;

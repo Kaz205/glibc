@@ -73,6 +73,9 @@ ifeq ($(subdir)$(config-cflags-mprefer-vector-width),mathyes)
 # Limit vector width to 128 bits to work around this issue.  It improves
 # performance of sin and cos by more than 40% on Skylake.
 CFLAGS-branred.c = -mprefer-vector-width=128
+CFLAGS-s_sincos.c = -mprefer-vector-width=256
+CFLAGS-e_exp.c = -mprefer-vector-width=128
+CFLAGS-e_exp2.c = -mprefer-vector-width=128
 endif
 
 ifeq ($(subdir)$(build-mathvec),benchtestsyes)
