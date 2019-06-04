@@ -22,6 +22,7 @@
 #undef	ffs
 
 int
+__attribute__((aligned(64)))
 __ffs (int x)
 {
   int cnt;
