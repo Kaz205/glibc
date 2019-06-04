@@ -23,6 +23,7 @@
 #undef	ffsll
 
 int
+__attribute__((aligned(64)))
 ffsll (long long int x)
 {
   long long int cnt;
