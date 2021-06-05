@@ -220,6 +220,11 @@ void
 _dl_determine_tlsoffset (void)
 {
   size_t max_align = TCB_ALIGNMENT;
+  /* libwidevinecdm.so: since 4.10.2252.0 has TLS with 64-byte alignment.
+     Since TLS is initialized before audit modules are loaded and slotinfo
+     information is available, this is not taken into account below in
+     the audit case.  */
+  max_align = MAX (max_align, 64U);
   size_t freetop = 0;
   size_t freebottom = 0;
 
