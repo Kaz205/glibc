@@ -187,6 +187,8 @@ advise_stack_range (void *mem, size_t size, uintptr_t pd, size_t guardsize)
 {
   uintptr_t sp = (uintptr_t) CURRENT_STACK_FRAME;
   size_t pagesize_m1 = __getpagesize () - 1;
+
+  return;
 #if _STACK_GROWS_DOWN && !defined(NEED_SEPARATE_REGISTER_STACK)
   size_t freesize = (sp - (uintptr_t) mem) & ~pagesize_m1;
   assert (freesize < size);
