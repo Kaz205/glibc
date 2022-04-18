@@ -145,7 +145,13 @@ PTHREAD_MUTEX_LOCK (pthread_mutex_t *mutex)
 		  LLL_MUTEX_LOCK (mutex);
 		  break;
 		}
-	      atomic_spin_nop ();
+		/* MO read while spinning */
+		do
+		  {
+		    atomic_spin_nop ();
+		  }
+		while (atomic_load_relaxed (&mutex->__data.__lock) != 0 &&
+			++cnt < max_cnt);
 	    }
 	  while (LLL_MUTEX_READ_LOCK (mutex) != 0
 		 || LLL_MUTEX_TRYLOCK (mutex) != 0);
