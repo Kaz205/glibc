@@ -538,6 +538,6 @@
 #define atomic_read_barrier() __asm ("" ::: "memory")
 #define atomic_write_barrier() __asm ("" ::: "memory")
 
-#define atomic_spin_nop() __asm ("pause")
+#define atomic_spin_nop() __asm ("lfence")
 
 #endif /* atomic-machine.h */
