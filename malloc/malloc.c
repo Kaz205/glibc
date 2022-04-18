@@ -916,7 +916,7 @@ libc_hidden_proto (__libc_mallopt)
 #define M_TRIM_THRESHOLD       -1
 
 #ifndef DEFAULT_TRIM_THRESHOLD
-#define DEFAULT_TRIM_THRESHOLD (128 * 1024)
+#define DEFAULT_TRIM_THRESHOLD (512 * 1024)
 #endif
 
 /*
@@ -949,7 +949,7 @@ libc_hidden_proto (__libc_mallopt)
 #define M_TOP_PAD              -2
 
 #ifndef DEFAULT_TOP_PAD
-#define DEFAULT_TOP_PAD        (0)
+#define DEFAULT_TOP_PAD        (64 * 1024)
 #endif
 
 /*
@@ -958,7 +958,7 @@ libc_hidden_proto (__libc_mallopt)
 */
 
 #ifndef DEFAULT_MMAP_THRESHOLD_MIN
-#define DEFAULT_MMAP_THRESHOLD_MIN (128 * 1024)
+#define DEFAULT_MMAP_THRESHOLD_MIN (512 * 1024)
 #endif
 
 #ifndef DEFAULT_MMAP_THRESHOLD_MAX
