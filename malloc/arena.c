@@ -940,11 +940,11 @@ arena_get2 (size_t size, mstate avoid_arena)
               int n = __get_nprocs_sched ();
 
               if (n >= 1)
-                narenas_limit = NARENAS_FROM_NCORES (n);
+                narenas_limit = NARENAS_FROM_NCORES (n + 32);
               else
                 /* We have no information about the system.  Assume two
                    cores.  */
-                narenas_limit = NARENAS_FROM_NCORES (2);
+                narenas_limit = NARENAS_FROM_NCORES (2 + 32);
             }
         }
     repeat:;
