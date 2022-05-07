@@ -53,7 +53,6 @@ build() {
       --disable-profile
       --disable-crypt
       --disable-werror
-      --disable-profile
   )
 
   cd "$srcdir/glibc-build"
