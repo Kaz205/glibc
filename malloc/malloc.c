@@ -2017,6 +2017,24 @@ madvise_thp (void *p, INTERNAL_SIZE_T size)
 #endif
 }
 
+static inline void
+madvise_populate (void *p, INTERNAL_SIZE_T size)
+{
+#if defined (MADV_POPULATE_WRITE)
+  /* Linux requires the input address to be page-aligned, and unaligned
+     inputs happens only for initial data segment.  */
+  if (__glibc_unlikely (!PTR_IS_ALIGNED (p, GLRO (dl_pagesize))))
+    {
+      void *q = PTR_ALIGN_DOWN (p, GLRO (dl_pagesize));
+      size += PTR_DIFF (p, q);
+      p = q;
+    }
+
+  __madvise (p, size, MADV_POPULATE_WRITE);
+#endif
+}
+
+
 /* ------------------- Support for multiple arenas -------------------- */
 #include "arena.c"
 
@@ -3696,6 +3714,9 @@ __libc_calloc (size_t n, size_t elem_size)
 
   INTERNAL_SIZE_T csz = chunksize (p);
 
+  /* calloc users expect the memory to be cleared, so lets avoid a pile of pagefaults */
+  madvise_populate(mem, sz);
+
   /* Two optional cases in which clearing not necessary */
   if (chunk_is_mmapped (p))
     {
@@ -3718,35 +3739,8 @@ __libc_calloc (size_t n, size_t elem_size)
      minimally 3.  */
   d = (INTERNAL_SIZE_T *) mem;
   clearsize = csz - SIZE_SZ;
-  nclears = clearsize / sizeof (INTERNAL_SIZE_T);
-  assert (nclears >= 3);
 
-  if (nclears > 9)
-    return memset (d, 0, clearsize);
-
-  else
-    {
-      *(d + 0) = 0;
-      *(d + 1) = 0;
-      *(d + 2) = 0;
-      if (nclears > 4)
-        {
-          *(d + 3) = 0;
-          *(d + 4) = 0;
-          if (nclears > 6)
-            {
-              *(d + 5) = 0;
-              *(d + 6) = 0;
-              if (nclears > 8)
-                {
-                  *(d + 7) = 0;
-                  *(d + 8) = 0;
-                }
-            }
-        }
-    }
-
-  return mem;
+  return memset (d, 0, clearsize);
 }
 #endif /* IS_IN (libc) */
 
