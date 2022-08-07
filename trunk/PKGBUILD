@@ -8,8 +8,8 @@
 
 pkgbase=glibc
 pkgname=(glibc lib32-glibc)
-pkgver=2.35
-pkgrel=134
+pkgver=2.36
+pkgrel=502
 arch=(x86_64)
 url='https://www.gnu.org/software/libc'
 license=(GPL LGPL)
@@ -17,7 +17,7 @@ makedepends=(git gd lib32-gcc-libs python)
 options=(!strip staticlibs !lto)
 #_commit=3de512be7ea6053255afed6154db9ee31d4e557a
 #source=(git+https://sourceware.org/git/glibc.git#commit=$_commit
-source=("git+https://github.com/Kaz205/glibc#branch=2.35"
+source=("git+https://github.com/Kaz205/glibc#branch=2.36"
         locale.gen.txt
         locale-gen
         lib32-glibc.conf
