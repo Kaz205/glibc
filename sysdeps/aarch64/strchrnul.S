@@ -1,30 +1,17 @@
-/* strchrnul - find a character or nul in a string
-
-   Copyright (C) 2014-2022 Free Software Foundation, Inc.
-
-   This file is part of the GNU C Library.
-
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
-
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library.  If not, see
-   <https://www.gnu.org/licenses/>.  */
-
-#include <sysdep.h>
+/*
+ * strchrnul - find a character or nul in a string
+ *
+ * Copyright (c) 2020, Arm Limited.
+ * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
+ */
 
 /* Assumptions:
  *
  * ARMv8-a, AArch64, Advanced SIMD.
  * MTE compatible.
  */
+
+#include <sysdep.h>
 
 #define srcin		x0
 #define chrin		w1
@@ -70,14 +57,22 @@ ENTRY (__strchrnul)
 
 	.p2align 4
 L(loop):
-	ldr	qdata, [src, 16]!
+	ldr	qdata, [src, 16]
+	cmeq	vhas_chr.16b, vdata.16b, vrepchr.16b
+	cmhs	vhas_chr.16b, vhas_chr.16b, vdata.16b
+	umaxp	vend.16b, vhas_chr.16b, vhas_chr.16b
+	fmov	tmp1, dend
+	cbnz	tmp1, L(end)
+	ldr	qdata, [src, 32]!
 	cmeq	vhas_chr.16b, vdata.16b, vrepchr.16b
 	cmhs	vhas_chr.16b, vhas_chr.16b, vdata.16b
 	umaxp	vend.16b, vhas_chr.16b, vhas_chr.16b
 	fmov	tmp1, dend
 	cbz	tmp1, L(loop)
-
+	sub	src, src, 16
+L(end):
 	shrn	vend.8b, vhas_chr.8h, 4		/* 128->64 */
+	add	src, src, 16
 	fmov	tmp1, dend
 #ifndef __AARCH64EB__
 	rbit	tmp1, tmp1
