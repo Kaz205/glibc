@@ -22,9 +22,4 @@
 #define count	x2
 #define dst	x3
 #define dstend	x4
-#define tmp1	x5
-#define tmp1w	w5
-#define tmp2	x6
-#define tmp2w	w6
-#define zva_len x7
-#define zva_lenw w7
+#define zva_val	x5
