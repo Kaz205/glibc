@@ -1,28 +1,17 @@
-/* Copyright (C) 2012-2022 Free Software Foundation, Inc.
-
-   This file is part of the GNU C Library.
-
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
-
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public
-   License along with the GNU C Library.  If not, see
-   <https://www.gnu.org/licenses/>.  */
-
-#include <sysdep.h>
+/*
+ * strlen - calculate the length of a string.
+ *
+ * Copyright (c) 2020, Arm Limited.
+ * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
+ */
 
 /* Assumptions:
  *
  * ARMv8-a, AArch64, Advanced SIMD.
  * MTE compatible.
  */
+
+#include <sysdep.h>
 
 #ifndef STRLEN
 # define STRLEN __strlen
@@ -43,12 +32,9 @@
 #define dend		d2
 
 /* Core algorithm:
-
-   For each 16-byte chunk we calculate a 64-bit nibble mask value with four bits
-   per byte. We take 4 bits of every comparison byte with shift right and narrow
-   by 4 instruction. Since the bits in the nibble mask reflect the order in
-   which things occur in the original string, counting trailing zeros identifies
-   exactly which byte matched.  */
+   Process the string in 16-byte aligned chunks. Compute a 64-bit mask with
+   four bits per byte using the shrn instruction. A count trailing zeros then
+   identifies the first zero byte.  */
 
 ENTRY (STRLEN)
 	PTR_ARG (0)
@@ -68,18 +54,25 @@ ENTRY (STRLEN)
 
 	.p2align 5
 L(loop):
-	ldr	data, [src, 16]!
+	ldr	data, [src, 16]
+	cmeq	vhas_nul.16b, vdata.16b, 0
+	umaxp	vend.16b, vhas_nul.16b, vhas_nul.16b
+	fmov	synd, dend
+	cbnz	synd, L(loop_end)
+	ldr	data, [src, 32]!
 	cmeq	vhas_nul.16b, vdata.16b, 0
 	umaxp	vend.16b, vhas_nul.16b, vhas_nul.16b
 	fmov	synd, dend
 	cbz	synd, L(loop)
-
+	sub	src, src, 16
+L(loop_end):
 	shrn	vend.8b, vhas_nul.8h, 4		/* 128->64 */
 	sub	result, src, srcin
 	fmov	synd, dend
 #ifndef __AARCH64EB__
 	rbit	synd, synd
 #endif
+	add	result, result, 16
 	clz	tmp, synd
 	add	result, result, tmp, lsr 2
 	ret
