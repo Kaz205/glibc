@@ -3581,7 +3581,7 @@ if test "$memory_tagging" = yes; then
   # Only enable this on architectures that support it.
   case $host_cpu in
     aarch64)
-      $as_echo "#define USE_MTAG 1" >>confdefs.h
+      $as_echo "#define USE_MTAG 0" >>confdefs.h
 
       ;;
   esac
