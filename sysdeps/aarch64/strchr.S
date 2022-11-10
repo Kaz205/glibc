@@ -1,99 +1,124 @@
 /*
  * strchr - find a character in a string
  *
- * Copyright (c) 2020, Arm Limited.
+ * Copyright (c) 2014-2020, Arm Limited.
  * SPDX-License-Identifier: MIT OR Apache-2.0 WITH LLVM-exception
  */
 
 /* Assumptions:
  *
- * ARMv8-a, AArch64, Advanced SIMD.
- * MTE compatible.
+ * ARMv8-a, AArch64
+ * Neon Available.
  */
 
 #include <sysdep.h>
 
+/* Arguments and results.  */
 #define srcin		x0
 #define chrin		w1
+
 #define result		x0
 
 #define src		x2
-#define tmp1		x1
-#define tmp2		x3
+#define	tmp1		x3
+#define wtmp2		w4
+#define tmp3		x5
 
 #define vrepchr		v0
-#define vdata		v1
-#define qdata		q1
-#define vhas_nul	v2
-#define vhas_chr	v3
-#define vrepmask	v4
-#define vend		v5
-#define dend		d5
+#define vdata1		v1
+#define vdata2		v2
+#define vhas_nul1	v3
+#define vhas_nul2	v4
+#define vhas_chr1	v5
+#define vhas_chr2	v6
+#define vrepmask_0	v7
+#define vrepmask_c	v16
+#define vend1		v17
+#define vend2		v18
 
 /* Core algorithm.
 
-   For each 16-byte chunk we calculate a 64-bit syndrome value with four bits
-   per byte. Bits 0-1 are set if the relevant byte matched the requested
-   character, bits 2-3 are set if the byte is NUL or matched. Count trailing
-   zeroes gives the position of the matching byte if it is a multiple of 4.
-   If it is not a multiple of 4, there was no match.  */
+   For each 32-byte hunk we calculate a 64-bit syndrome value, with
+   two bits per byte (LSB is always in bits 0 and 1, for both big
+   and little-endian systems).  For each tuple, bit 0 is set iff
+   the relevant byte matched the requested character; bit 1 is set
+   iff the relevant byte matched the NUL end of string (we trigger
+   off bit0 for the special case of looking for NUL).  Since the bits
+   in the syndrome reflect exactly the order in which things occur
+   in the original string a count_trailing_zeros() operation will
+   identify exactly which byte is causing the termination, and why.  */
+
+/* Locals and temporaries.  */
 
 ENTRY (strchr)
 	PTR_ARG (0)
-	bic	src, srcin, 15
+	/* Magic constant 0xc0300c03 to allow us to identify which lane
+	   matches the requested byte.  Even bits are set if the character
+	   matches, odd bits if either the char is NUL or matches.  */
+	mov	wtmp2, 0x0c03
+	movk	wtmp2, 0xc030, lsl 16
 	dup	vrepchr.16b, chrin
-	ld1	{vdata.16b}, [src]
-	movi	vrepmask.16b, 0x33
-	cmeq	vhas_nul.16b, vdata.16b, 0
-	cmeq	vhas_chr.16b, vdata.16b, vrepchr.16b
-	bit	vhas_nul.16b, vhas_chr.16b, vrepmask.16b
-	lsl	tmp2, srcin, 2
-	shrn	vend.8b, vhas_nul.8h, 4		/* 128->64 */
-	fmov	tmp1, dend
-	lsr	tmp1, tmp1, tmp2
-	cbz	tmp1, L(loop)
+	bic	src, srcin, #31		/* Work with aligned 32-byte hunks.  */
+	dup	vrepmask_c.4s, wtmp2
+	ands	tmp1, srcin, #31
+	add	vrepmask_0.4s, vrepmask_c.4s, vrepmask_c.4s /* equiv: lsl #1 */
+	b.eq	L(loop)
 
-	rbit	tmp1, tmp1
-	clz	tmp1, tmp1
-	/* Tmp1 is an even multiple of 2 if the target character was
-	   found first. Otherwise we've found the end of string.  */
-	tst	tmp1, 2
-	add	result, srcin, tmp1, lsr 2
-	csel	result, result, xzr, eq
-	ret
+	/* Input string is not 32-byte aligned.  Rather than forcing
+	   the padding bytes to a safe value, we calculate the syndrome
+	   for all the bytes, but then mask off those bits of the
+	   syndrome that are related to the padding.  */
+	ld1	{vdata1.16b, vdata2.16b}, [src], #32
+	neg	tmp1, tmp1
+	cmeq	vhas_nul1.16b, vdata1.16b, #0
+	cmeq	vhas_chr1.16b, vdata1.16b, vrepchr.16b
+	cmeq	vhas_nul2.16b, vdata2.16b, #0
+	cmeq	vhas_chr2.16b, vdata2.16b, vrepchr.16b
+	bif	vhas_nul1.16b, vhas_chr1.16b, vrepmask_0.16b
+	bif	vhas_nul2.16b, vhas_chr2.16b, vrepmask_0.16b
+	and	vend1.16b, vhas_nul1.16b, vrepmask_c.16b
+	and	vend2.16b, vhas_nul2.16b, vrepmask_c.16b
+	lsl	tmp1, tmp1, #1
+	addp	vend1.16b, vend1.16b, vend2.16b		// 256->128
+	mov	tmp3, #~0
+	addp	vend1.16b, vend1.16b, vend2.16b		// 128->64
+	lsr	tmp1, tmp3, tmp1
+
+	mov	tmp3, vend1.d[0]
+	bic	tmp1, tmp3, tmp1	// Mask padding bits.
+	cbnz	tmp1, L(tail)
 
 	.p2align 4
 L(loop):
-	ldr	qdata, [src, 16]
-	cmeq	vhas_chr.16b, vdata.16b, vrepchr.16b
-	cmhs	vhas_nul.16b, vhas_chr.16b, vdata.16b
-	umaxp	vend.16b, vhas_nul.16b, vhas_nul.16b
-	fmov	tmp1, dend
-	cbnz	tmp1, L(end)
-	ldr	qdata, [src, 32]!
-	cmeq	vhas_chr.16b, vdata.16b, vrepchr.16b
-	cmhs	vhas_nul.16b, vhas_chr.16b, vdata.16b
-	umaxp	vend.16b, vhas_nul.16b, vhas_nul.16b
-	fmov	tmp1, dend
+	ld1	{vdata1.16b, vdata2.16b}, [src], #32
+	cmeq	vhas_chr1.16b, vdata1.16b, vrepchr.16b
+	cmeq	vhas_chr2.16b, vdata2.16b, vrepchr.16b
+	cmhs	vhas_nul1.16b, vhas_chr1.16b, vdata1.16b
+	cmhs	vhas_nul2.16b, vhas_chr2.16b, vdata2.16b
+	orr	vend1.16b, vhas_nul1.16b, vhas_nul2.16b
+	umaxp	vend1.16b, vend1.16b, vend1.16b
+	mov	tmp1, vend1.d[0]
 	cbz	tmp1, L(loop)
-	sub	src, src, 16
-L(end):
 
-#ifdef __AARCH64EB__
-	bif	vhas_nul.16b, vhas_chr.16b, vrepmask.16b
-	shrn	vend.8b, vhas_nul.8h, 4		/* 128->64 */
-	fmov	tmp1, dend
-#else
-	bit	vhas_nul.16b, vhas_chr.16b, vrepmask.16b
-	shrn	vend.8b, vhas_nul.8h, 4		/* 128->64 */
-	fmov	tmp1, dend
+	/* Termination condition found.  Now need to establish exactly why
+	   we terminated.  */
+	bif	vhas_nul1.16b, vhas_chr1.16b, vrepmask_0.16b
+	bif	vhas_nul2.16b, vhas_chr2.16b, vrepmask_0.16b
+	and	vend1.16b, vhas_nul1.16b, vrepmask_c.16b
+	and	vend2.16b, vhas_nul2.16b, vrepmask_c.16b
+	addp	vend1.16b, vend1.16b, vend2.16b		// 256->128
+	addp	vend1.16b, vend1.16b, vend2.16b		// 128->64
+	mov	tmp1, vend1.d[0]
+L(tail):
+	/* Count the trailing zeros, by bit reversing...  */
 	rbit	tmp1, tmp1
-#endif
-	add	src, src, 16
-	clz	tmp1, tmp1
-	/* Tmp1 is a multiple of 4 if the target character was found.  */
-	tst	tmp1, 2
-	add	result, src, tmp1, lsr 2
+	/* Re-bias source.  */
+	sub	src, src, #32
+	clz	tmp1, tmp1	/* And counting the leading zeros.  */
+	/* Tmp1 is even if the target charager was found first.  Otherwise
+	   we've found the end of string and we weren't looking for NUL.  */
+	tst	tmp1, #1
+	add	result, src, tmp1, lsr #1
 	csel	result, result, xzr, eq
 	ret
 
