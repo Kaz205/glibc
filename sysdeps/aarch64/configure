@@ -324,6 +324,6 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libc_cv_asm_sve" >&5
 $as_echo "$libc_cv_asm_sve" >&6; }
 if test $libc_cv_aarch64_sve_asm = yes; then
-  $as_echo "#define HAVE_AARCH64_SVE_ASM 1" >>confdefs.h
+  $as_echo "#define HAVE_AARCH64_SVE_ASM 0" >>confdefs.h
 
 fi
