@@ -29,33 +29,10 @@
 extern __typeof (__redirect_memcpy) __libc_memcpy;
 
 extern __typeof (__redirect_memcpy) __memcpy_generic attribute_hidden;
-extern __typeof (__redirect_memcpy) __memcpy_thunderx attribute_hidden;
-extern __typeof (__redirect_memcpy) __memcpy_thunderx2 attribute_hidden;
-extern __typeof (__redirect_memcpy) __memcpy_falkor attribute_hidden;
-extern __typeof (__redirect_memcpy) __memcpy_a64fx attribute_hidden;
-extern __typeof (__redirect_memcpy) __memcpy_sve attribute_hidden;
 
 static inline __typeof (__redirect_memcpy) *
 select_memcpy_ifunc (void)
 {
-  INIT_ARCH ();
-
-  if (sve && HAVE_AARCH64_SVE_ASM)
-    {
-      if (IS_A64FX (midr))
-	return __memcpy_a64fx;
-      return __memcpy_sve;
-    }
-
-  if (IS_THUNDERX (midr))
-    return __memcpy_thunderx;
-
-  if (IS_THUNDERX2 (midr) || IS_THUNDERX2PA (midr))
-    return __memcpy_thunderx2;
-
-  if (IS_FALKOR (midr) || IS_PHECDA (midr))
-    return __memcpy_falkor;
-
   return __memcpy_generic;
 }
 

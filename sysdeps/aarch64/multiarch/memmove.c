@@ -29,33 +29,10 @@
 extern __typeof (__redirect_memmove) __libc_memmove;
 
 extern __typeof (__redirect_memmove) __memmove_generic attribute_hidden;
-extern __typeof (__redirect_memmove) __memmove_thunderx attribute_hidden;
-extern __typeof (__redirect_memmove) __memmove_thunderx2 attribute_hidden;
-extern __typeof (__redirect_memmove) __memmove_falkor attribute_hidden;
-extern __typeof (__redirect_memmove) __memmove_a64fx attribute_hidden;
-extern __typeof (__redirect_memmove) __memmove_sve attribute_hidden;
 
 static inline __typeof (__redirect_memmove) *
 select_memmove_ifunc (void)
 {
-  INIT_ARCH ();
-
-  if (sve && HAVE_AARCH64_SVE_ASM)
-    {
-      if (IS_A64FX (midr))
-	return __memmove_a64fx;
-      return __memmove_sve;
-    }
-
-  if (IS_THUNDERX (midr))
-    return __memmove_thunderx;
-
-  if (IS_THUNDERX2 (midr) || IS_THUNDERX2PA (midr))
-    return __memmove_thunderx2;
-
-  if (IS_FALKOR (midr) || IS_PHECDA (midr))
-    return __memmove_falkor;
-
   return __memmove_generic;
 }
 
