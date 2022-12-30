@@ -2013,7 +2013,7 @@ madvise_thp (void *p, INTERNAL_SIZE_T size)
       p = q;
     }
 
-  __madvise (p, size, MADV_HUGEPAGE);
+  __madvise (p, size, MADV_COLLAPSE);
 #endif
 }
 
@@ -2434,7 +2434,7 @@ sysmalloc_mmap (INTERNAL_SIZE_T nb, size_t pagesize, int extra_flags, mstate av)
 
   char *mm = (char *) MMAP (0, size,
 			    mtag_mmap_flags | PROT_READ | PROT_WRITE,
-			    extra_flags);
+			    extra_flags | MAP_POPULATE);
   if (mm == MAP_FAILED)
     return mm;
 
