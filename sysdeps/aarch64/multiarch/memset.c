@@ -28,11 +28,33 @@
 
 extern __typeof (__redirect_memset) __libc_memset;
 
+extern __typeof (__redirect_memset) __memset_falkor attribute_hidden;
+extern __typeof (__redirect_memset) __memset_emag attribute_hidden;
+extern __typeof (__redirect_memset) __memset_kunpeng attribute_hidden;
+extern __typeof (__redirect_memset) __memset_a64fx attribute_hidden;
 extern __typeof (__redirect_memset) __memset_generic attribute_hidden;
 
 static inline __typeof (__redirect_memset) *
 select_memset_ifunc (void)
 {
+  INIT_ARCH ();
+
+  if (sve && HAVE_AARCH64_SVE_ASM)
+    {
+      if (IS_A64FX (midr) && zva_size == 256)
+	return __memset_a64fx;
+      return __memset_generic;
+    }
+
+  if (IS_KUNPENG920 (midr))
+    return __memset_kunpeng;
+
+  if ((IS_FALKOR (midr) || IS_PHECDA (midr)) && zva_size == 64)
+    return __memset_falkor;
+
+  if (IS_EMAG (midr) && zva_size == 64)
+    return __memset_emag;
+
   return __memset_generic;
 }
 
