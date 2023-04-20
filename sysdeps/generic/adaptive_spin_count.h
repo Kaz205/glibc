@@ -19,4 +19,4 @@
 /* The choice of 100 spins for the default spin count for an adaptive spin
    is a completely arbitrary choice that has not been evaluated thoroughly
    using modern hardware.  */
-#define DEFAULT_ADAPTIVE_COUNT 100
+#define DEFAULT_ADAPTIVE_COUNT 5000
